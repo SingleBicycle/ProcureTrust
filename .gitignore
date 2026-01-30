@@ -1,0 +1,179 @@
+############################
+# OS / Editor
+############################
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+Desktop.ini
+
+.vscode/
+!.vscode/settings.json
+!.vscode/launch.json
+!.vscode/tasks.json
+!.vscode/extensions.json
+
+.idea/
+*.iml
+*.ipr
+*.iws
+
+*.swp
+*.swo
+*~
+*.tmp
+*.bak
+
+############################
+# Python bytecode / cache
+############################
+__pycache__/
+*.py[cod]
+*$py.class
+
+############################
+# Virtualenv / env files
+############################
+.venv/
+venv/
+env/
+ENV/
+pip-wheel-metadata/
+.python-version
+
+# dotenv (keep .env.example tracked)
+.env
+.env.*
+!.env.example
+
+############################
+# Packaging / build
+############################
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+wheelhouse/
+MANIFEST
+*.whl
+
+############################
+# Test / coverage / reports
+############################
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+nosetests.xml
+test-results/
+junit.xml
+
+############################
+# Type checking / lint
+############################
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+############################
+# Jupyter / IPython
+############################
+.ipynb_checkpoints/
+.profile_default/
+ipython_config.py
+
+############################
+# Logs / runtime
+############################
+*.log
+logs/
+*.pid
+*.seed
+*.sqlite3
+*.db
+
+############################
+# Documentation builds
+############################
+site/
+docs/_build/
+mkdocs.yml.bak
+
+############################
+# Common frameworks
+############################
+# Django
+*.pot
+*.pyc
+local_settings.py
+db.sqlite3
+media/
+staticfiles/
+
+# Flask / FastAPI (common)
+instance/
+.webassets-cache
+
+############################
+# ML / Data artifacts
+############################
+# Model checkpoints / weights
+*.pt
+*.pth
+*.ckpt
+*.h5
+*.pb
+*.onnx
+*.tflite
+*.pkl
+*.joblib
+
+# TensorBoard / wandb / mlruns
+runs/
+lightning_logs/
+wandb/
+mlruns/
+
+# Datasets / large files (adjust as needed)
+data/
+datasets/
+*.parquet
+*.arrow
+*.npy
+*.npz
+
+############################
+# Notebooks outputs / exports
+############################
+*.nbconvert.ipynb
+*.html
+*.pdf
+
+############################
+# Docker / compose overrides
+############################
+docker-compose.override.yml
+
+############################
+# Secrets / keys
+############################
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials.json
+
+############################
+# Local config
+############################
+config.local.*
+settings.local.*
