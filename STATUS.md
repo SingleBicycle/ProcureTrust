@@ -4,7 +4,7 @@
 > You can hand-edit sections outside SNAPSHOT.
 
 ## 0) Executive Summary (manual)
-- Current milestone: Prompt __ / 12
+- Current milestone: Prompt 1 / 12
 - Stage coverage: A [ ] B [ ] C [ ] D [ ]
 - Demo status: (what works end-to-end)
 - Top risks / blockers:
@@ -24,9 +24,9 @@
 - [ ] P12 Learning + Metrics + A->B Contract
 
 ## 2) Next Prompt Intent (manual)
-- Next prompt number:
-- Scope (allowed dirs/files):
-- DoD / acceptance commands:
+- Next prompt number: P1
+- Scope (allowed dirs/files): packages/schemas, apps/api(schema integration)
+- DoD / acceptance commands: schema.json 生成 + patch merge tests + make test + make snapshot
 
 ---
 
@@ -34,21 +34,34 @@
 ## SNAPSHOT (auto)
 
 ### A) Git
-- Branch: main
-- Last commit: 31700c3 Add comprehensive .gitignore file
+- Branch: feat/p1-infra
+- Last commit: 48b802e chore: add project/status + snapshot tooling
 - Dirty files: yes
 
 ### B) Repo Tree (key paths)
-- apps/ (missing)
+- apps/
+  - api/
+  - web/
+    - pages/
+    - Dockerfile
+    - package.json
+    - tests/
+    - Dockerfile
+    - __init__.py
+    - main.py
+    - requirements.txt
 - packages/ (missing)
-- infra/ (missing)
+- infra/
+  - docker-compose.yml
 - scripts/
   - snapshot.py
 
 ### C) API Surface (FastAPI)
 - Base URL: (missing)
 - Endpoints summary:
-  - (missing)
+  - GET /health - Health
+  - POST /v1/chat - Chat
+  - POST /v1/sessions - Create Session
 - Router files (fallback):
   - (missing)
 - OpenAPI file path (if exported): (missing)
@@ -88,7 +101,7 @@
 
 ### H) Frontend Modules
 - Pages/routes:
-  - (missing)
+  - apps/web/pages/index.js
 - Key UI components present:
   - Chat: (missing)
   - CompletenessBar: (missing)
@@ -97,19 +110,22 @@
   - AssetTimeline: (missing)
 
 ### I) Tests & Commands
-- make dev: no
-- make test: no
+- make dev: yes
+- make test: yes
 - make snapshot: yes
 - pytest config: (missing)
-- package.json test script: (missing)
+- package.json test script: yes (apps/web/package.json)
 - CI workflows:
   - (missing)
 - Suggested commands:
   - make snapshot
+  - make dev
+  - make test
 
 ### J) Known Issues (auto-collected TODO markers)
 - TODO/FIXME list (top 20):
-  - (missing)
+  - prompt_studio.txt:264: TODO markers)
+  - prompt_studio.txt:265: TODO/FIXME list (top 20):
 <!-- SNAPSHOT:END -->
 
 ---

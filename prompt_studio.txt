@@ -1,0 +1,315 @@
+你是资深全栈工程师，在 VSCode Workspace 中实现任务。请严格遵循：
+
+【强制流程（先读再写）】
+1) 在开始编码前，请先用 5 行总结你从 PROJECT.md/STATUS.md 读到的约束和当前状态，然后再开始改代码。
+2) 如果你认为必须重构，请停止，不要做；只输出你建议的最小变更清单（不实际改代码）。
+
+【全局约束】
+- 不要重构目录结构，不要移动文件
+- 不要破坏已有 API 契约（路径、响应字段）
+- 仅在本次 scope 白名单内修改；若必须越界，先停下并解释原因
+- 改完必须保证：make test && make snapshot 通过
+
+====================
+[PROJECT.md]
+# PROJECT.md — A-side Procurement Requirements Convergence Platform (US Buyer)
+
+> Single source of truth for architecture, contracts, and guardrails.
+> Read this FIRST before making changes.
+
+## 0. Product Goal (MVP: A-side closed loop)
+We build a web platform for US buyers to converge procurement requirements via:
+- Chat (text) + reference image upload
+- AI image generation/editing (nano banana preferred) with version traceability
+- Output: structured RequirementObject (JSON Schema) + Design Asset Pack + RFQ (EN primary, CN appendix optional)
+- Future B-side: RFQ -> 1688/Taobao sourcing & quote automation (NOT in MVP; only reserve interfaces)
+
+MVP success criteria:
+- User can complete Stage A/B/C/D without human intervention and export a usable RFQ.
+- Every state change is auditable and replayable.
+- Category-specific dynamic fields work for at least 3 representative categories (shoes / infant formula / restaurant plates).
+
+## 1. Non-goals (for MVP)
+- Full taxonomy coverage of all product categories (use 80/20 + fallback).
+- Full B-side automation (only schema + endpoint contract).
+- Complex image editing UX (start with generate -> select -> text-edit; optional region edit later).
+
+## 2. Core Experience: “Human buyer agent” rhythm
+Every assistant turn MUST contain:
+1) WHY I’m asking (quote-impact / compliance / logistics reason)
+2) WHAT I’ve captured (recap snapshot)
+3) WHAT’s next (next step + remaining missing count)
+
+Never ask 30 questions at once. Ask 1–3 high-information questions per turn.
+
+## 3. Orchestrator: Stage Machine (A/B/C/D) + Ready Gate
+Stages:
+- Stage A: Category & goal lock (category, usage, target market=US, rough qty, ref image?)
+- Stage B: Spec convergence (dynamic fields per category, slot filling)
+- Stage C: Design asset finalization (generate -> choose -> edit -> lock)
+- Stage D: RFQ + risk confirmation (risk engine + user confirms required actions; export)
+
+Ready Gate rules:
+- Cannot proceed to next stage unless schema + required fields satisfied for the stage.
+- Stage D finalize requires: missing_fields == 0 AND required risk actions confirmed.
+
+## 4. Key Data Contracts (Do not break)
+### 4.1 RequirementObject (JSON Schema)
+- Stored as canonical source of truth.
+- Updates are PATCH-style (diff) only; never overwrite blindly.
+- Must not hallucinate: unknown fields remain null / "unknown" and trigger questions.
+
+### 4.2 Audit Events
+Every state mutation must emit an audit event:
+- user_message / assistant_message
+- node_start / node_end / node_error
+- state_snapshot
+- retrieval_trace (RAG query + doc ids)
+- image_event (generate/edit/select)
+Audit must enable replay.
+
+### 4.3 Asset Versioning
+Asset record must include:
+- asset_id, parent_id, kind(upload/generate/edit), prompt, params, provider, url, created_at
+- user selection reason
+Version tree must be reconstructable.
+
+### 4.4 A->B Contract (Reserved)
+RFQSubmission schema:
+- rfq_id
+- requirement_object (json)
+- assets (urls + metadata)
+- rfq_document (html + optional pdf)
+- created_at
+B-side response:
+- ack + optional recommendations list
+
+## 5. Category Spec Engine (Dynamic fields)
+We DO NOT create a full taxonomy manually.
+We implement:
+- Taxonomy (small top-level categories)
+- Spec Blocks (reusable modules, ~20–40 blocks)
+- Attribute Graph (dependencies: if A then require B)
+- Template/Question library (field explanation, examples, question templates, RFQ line templates)
+Fallback for long tail:
+- Map to nearest top-level category -> pick common blocks via RAG -> LLM drafts a temporary field graph
+- Must pass schema + risk validation
+- UI must disclose: "Temporary spec list; high-risk gaps remain"
+
+## 6. RAG + KG-lite integration
+RAG knowledge packs (priority):
+- category spec guides (fields, units, pitfalls)
+- compliance & labeling guides (US-focused)
+- materials/process & cost impact
+- procurement talk tracks + RFQ templates
+
+KG-lite responsibilities:
+- field dependency activation
+- missing-field impact ranking
+- risk triggers (kids/food/food-contact/battery/liquid/etc.)
+
+## 7. Learning (Controlled)
+- L1 Session memory: per-session captured facts; avoid repeated questions
+- L2 Tenant memory: organization defaults (Incoterms, destination ZIP, packaging preference, sizing system)
+- L3 Offline improvement: analytics from real conversations to refine rules/prompts (NO online self-modifying logic)
+
+## 8. Tech Stack (default)
+- Backend: FastAPI (Python) + LangGraph Orchestrator
+- DB: Postgres (jsonb) + optional pgvector
+- Cache/Queue: Redis
+- Assets: S3-compatible storage
+- Frontend: Next.js (React)
+- Observability: structured logs + traces + metrics dashboard endpoints
+
+## 9. Repo Structure (monorepo)
+- apps/api        # FastAPI + LangGraph + services
+- apps/web        # Next.js UI
+- packages/schemas# shared schema + codegen
+- scripts/        # snapshot, tooling
+- infra/          # docker, deploy
+
+## 10. Engineering Rules (PR discipline)
+- Small PRs only, aligned with staged prompts.
+- Each PR must update STATUS.md via snapshot script.
+- Never break existing API contracts.
+- Add tests for:
+  - schema validation
+  - patch merge
+  - question planner (top-k)
+  - risk triggers
+  - asset version chain
+
+## 11. Local Dev Commands (expected)
+- make dev
+- make test
+- make snapshot
+- docker compose up
+
+## 12. References (internal)
+See research report PDF for requirements and rationale.
+
+====================
+
+====================
+[STATUS.md]
+# STATUS.md — Build Snapshot (Auto-updated)
+
+> DO NOT hand-edit inside the SNAPSHOT block.
+> You can hand-edit sections outside SNAPSHOT.
+
+## 0) Executive Summary (manual)
+- Current milestone: Prompt 1 / 12
+- Stage coverage: A [ ] B [ ] C [ ] D [ ]
+- Demo status: (what works end-to-end)
+- Top risks / blockers:
+
+## 1) Completed Prompts (manual checklist)
+- [ ] P1 Infra
+- [ ] P2 Schemas
+- [ ] P3 Audit
+- [ ] P4 Orchestrator A/B
+- [ ] P5 Spec Engine
+- [ ] P6 Question Planner
+- [ ] P7 RAG
+- [ ] P8 KG-lite
+- [ ] P9 Web UX
+- [ ] P10 Images & Versioning
+- [ ] P11 Risk + RFQ
+- [ ] P12 Learning + Metrics + A->B Contract
+
+## 2) Next Prompt Intent (manual)
+- Next prompt number: P1
+- Scope (allowed dirs/files): packages/schemas, apps/api(schema integration)
+- DoD / acceptance commands: schema.json 生成 + patch merge tests + make test + make snapshot
+
+---
+
+<!-- SNAPSHOT:BEGIN -->
+## SNAPSHOT (auto)
+
+### A) Git
+- Branch: main
+- Last commit: 31700c3 Add comprehensive .gitignore file
+- Dirty files: yes
+
+### B) Repo Tree (key paths)
+- apps/ (missing)
+- packages/ (missing)
+- infra/ (missing)
+- scripts/
+  - snapshot.py
+
+### C) API Surface (FastAPI)
+- Base URL: (missing)
+- Endpoints summary:
+  - (missing)
+- Router files (fallback):
+  - (missing)
+- OpenAPI file path (if exported): (missing)
+
+### D) Orchestrator Graph (LangGraph)
+- Graph module: (missing)
+- Nodes:
+  - (missing)
+- Edges:
+  - (missing)
+- Stage machine support:
+  - stage values found:
+    - (missing)
+  - ready gate: (missing)
+
+### E) Schemas
+- RequirementObject version: (missing)
+- schema.json path: (missing)
+- Top-level fields (first 30):
+  - (missing)
+- Required fields:
+  - (missing)
+
+### F) DB / Migrations
+- DB tables (best-effort):
+  - (missing)
+- Latest migrations:
+  - (missing)
+
+### G) RAG / KG-lite
+- Vector store locations:
+  - (missing)
+- Knowledge packs:
+  - (missing)
+- KG-lite rules:
+  - (missing)
+
+### H) Frontend Modules
+- Pages/routes:
+  - (missing)
+- Key UI components present:
+  - Chat: (missing)
+  - CompletenessBar: (missing)
+  - MissingList: (missing)
+  - RFQPreview: (missing)
+  - AssetTimeline: (missing)
+
+### I) Tests & Commands
+- make dev: no
+- make test: no
+- make snapshot: yes
+- pytest config: (missing)
+- package.json test script: (missing)
+- CI workflows:
+  - (missing)
+- Suggested commands:
+  - make snapshot
+
+### J) Known Issues (auto-collected TODO markers)
+- TODO/FIXME list (top 20):
+  - (missing)
+<!-- SNAPSHOT:END -->
+
+---
+
+## 3) Manual Notes (manual)
+- Product decisions taken:
+- UX copy changes:
+- Prompt changes / learnings:
+
+====================
+
+====================
+[TASK: P1 Infra]
+目标：搭建可运行 monorepo dev 环境：FastAPI + Next.js + Postgres + Redis via docker compose。
+
+要求：
+1) apps/api (FastAPI):
+   - GET /health -> {ok:true}
+   - POST /v1/sessions -> create session id
+   - POST /v1/chat -> placeholder response (no orchestrator yet)
+2) apps/web (Next.js):
+   - Home page with a button "Create Session" and a simple chat input UI placeholder
+3) infra/docker compose:
+   - postgres, redis, api, web
+4) Makefile:
+   - make dev (starts compose)
+   - make test (runs backend tests + frontend lint/test placeholder)
+   - make snapshot (already from P0)
+
+[SCOPE ALLOWLIST]
+Allowed:
+- apps/api/**
+- apps/web/**
+- infra/**
+- Makefile
+- package configs
+Forbidden:
+- Changing PROJECT.md contracts
+- Renaming endpoints or response fields
+- Moving directories
+
+[DoD / ACCEPTANCE]
+- docker compose up works
+- curl /health ok
+- POST /v1/sessions returns id
+- web loads and can call /v1/sessions
+- make test passes
+- make snapshot updates STATUS.md
+====================
