@@ -6,6 +6,7 @@ Python dependencies are missing. It fills missing data with "(missing)".
 """
 from __future__ import annotations
 
+import ast
 import json
 import os
 import re
@@ -304,12 +305,10 @@ def find_openapi_files(root: Path) -> List[str]:
     return sorted(candidates)
 
 
-def find_graph_module(root: Path) -> Optional[Path]:
+def find_state_machine_module(root: Path) -> Optional[Path]:
     candidates = [
-        root / "apps" / "api" / "services" / "orchestrator" / "graph.py",
-        root / "apps" / "api" / "orchestrator" / "graph.py",
-        root / "apps" / "api" / "services" / "graph.py",
-        root / "apps" / "api" / "graph.py",
+        root / "apps" / "api" / "services" / "state_machine.py",
+        root / "apps" / "api" / "state_machine.py",
     ]
     for path in candidates:
         if path.exists():
@@ -318,35 +317,18 @@ def find_graph_module(root: Path) -> Optional[Path]:
     if not api_dir.exists():
         return None
     for path in iter_files(api_dir):
-        if path.name == "graph.py":
+        if path.name == "state_machine.py":
             return path
     return None
 
 
-def parse_graph_static(text: str) -> Tuple[List[str], List[str]]:
-    nodes = set()
-    edges = set()
-
-    for match in re.findall(r"add_node\(\s*['\"]([^'\"]+)['\"]", text):
-        nodes.add(match)
-
-    for match in re.findall(
-        r"add_edge\(\s*['\"]([^'\"]+)['\"]\s*,\s*['\"]([^'\"]+)['\"]",
-        text,
-    ):
-        if len(match) == 2:
-            edges.add(f"{match[0]} -> {match[1]}")
-
-    return sorted(nodes), sorted(edges)
-
-
-def parse_stage_values(text: str) -> List[str]:
-    stages = set()
-    for match in re.findall(r"Stage\s*([A-D])", text, flags=re.IGNORECASE):
-        stages.add(f"Stage {match.upper()}")
-    for match in re.findall(r"stage[_\s-]?([a-d])", text, flags=re.IGNORECASE):
-        stages.add(f"Stage {match.upper()}")
-    return sorted(stages)
+def detect_stage_enum(text: str) -> bool:
+    if not re.search(r"class\s+Stage\b", text):
+        return False
+    for letter in ["A", "B", "C", "D"]:
+        if not re.search(rf"\b{letter}\s*=\s*['\"]{letter}['\"]", text):
+            return False
+    return True
 
 
 def detect_ready_gate(text: str) -> str:
@@ -357,6 +339,30 @@ def detect_ready_gate(text: str) -> str:
     if re.search(r"readyGate", text, flags=re.IGNORECASE):
         return "yes"
     return "no"
+
+
+def count_category_registry(text: str) -> Optional[int]:
+    try:
+        tree = ast.parse(text)
+    except Exception:
+        return None
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            targets = node.targets
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+        else:
+            continue
+        for target in targets:
+            if isinstance(target, ast.Name) and target.id == "CATEGORY_REGISTRY":
+                try:
+                    value = ast.literal_eval(node.value)
+                except Exception:
+                    return None
+                if isinstance(value, (list, tuple, set, dict)):
+                    return len(value)
+                return None
+    return None
 
 
 def schema_info(schema_path: Path) -> Tuple[str, List[str], List[str]]:
@@ -606,85 +612,48 @@ def build_snapshot(root: Path) -> str:
     lines.append(f"- OpenAPI file path (if exported): {openapi_file}")
     lines.append("")
 
-    # D) Orchestrator Graph
-    lines.append("### D) Orchestrator Graph (LangGraph)")
-    graph_path = find_graph_module(root)
-    if graph_path is None:
-        lines.append("- Graph module: (missing)")
-        lines.append("- Nodes:")
-        lines.append("  - (missing)")
-        lines.append("- Edges:")
-        lines.append("  - (missing)")
-        lines.append("- Stage machine support:")
-        lines.append("  - stage values found:")
-        lines.append("    - (missing)")
-        lines.append("  - ready gate: (missing)")
+    # D) State Machine Core
+    lines.append("### D) State Machine Core (A/B/C/D)")
+    state_machine_path = find_state_machine_module(root)
+    if state_machine_path is None:
+        lines.append("- Module path: (missing)")
+        lines.append("- Stage enum found: (missing)")
+        lines.append("- Ready gate rules present: (missing)")
+        lines.append("- Category registry count: (missing)")
+        lines.append("- Next-question planner present: (missing)")
     else:
-        lines.append(f"- Graph module: {rel(graph_path, root)}")
-        nodes: List[str] = []
-        edges: List[str] = []
-        stages: List[str] = []
-        ready_gate = "(missing)"
-
+        lines.append(f"- Module path: {rel(state_machine_path, root)}")
         try:
-            module = import_module_from_path(graph_path, root)
-            if module is not None and hasattr(module, "describe_graph"):
-                describe_fn = getattr(module, "describe_graph")
-                if callable(describe_fn):
-                    info = describe_fn()
-                    if isinstance(info, dict):
-                        nodes = [str(x) for x in info.get("nodes", [])]
-                        edges_raw = info.get("edges", [])
-                        edges = []
-                        for item in edges_raw:
-                            if isinstance(item, (list, tuple)) and len(item) == 2:
-                                edges.append(f"{item[0]} -> {item[1]}")
-                            else:
-                                edges.append(str(item))
-                        stages = [str(x) for x in info.get("stages", [])]
+            text = read_text(state_machine_path)
         except Exception:
-            pass
+            text = ""
 
-        if not nodes or not edges or not stages or ready_gate == "(missing)":
-            try:
-                text = read_text(graph_path)
-            except Exception:
-                text = ""
-            if not nodes or not edges:
-                parsed_nodes, parsed_edges = parse_graph_static(text)
-                if not nodes:
-                    nodes = parsed_nodes
-                if not edges:
-                    edges = parsed_edges
-            if not stages:
-                stages = parse_stage_values(text)
-            ready_gate = detect_ready_gate(text) if text else "(missing)"
+        stage_found = detect_stage_enum(text) if text else False
+        apply_patch_found = "def apply_patch" in text
+        compute_missing_found = "def compute_missing" in text
+        planner_found = "def plan_next_questions" in text
+        ready_gate = detect_ready_gate(text) if text else "(missing)"
+        category_count = count_category_registry(text) if text else None
 
-        lines.append("- Nodes:")
-        if nodes:
-            for node in nodes:
-                lines.append(f"  - {node}")
+        stage_detail = "yes" if stage_found else "no"
+        if text:
+            stage_detail = (
+                f"{stage_detail} (apply_patch: {'yes' if apply_patch_found else 'no'}, "
+                f"compute_missing: {'yes' if compute_missing_found else 'no'})"
+            )
+
+        lines.append(f"- Stage enum found: {stage_detail}")
+        lines.append(f"- Ready gate rules present: {ready_gate}")
+        if category_count is None:
+            lines.append("- Category registry count: (missing)")
         else:
-            lines.append("  - (missing)")
-        lines.append("- Edges:")
-        if edges:
-            for edge in edges:
-                lines.append(f"  - {edge}")
-        else:
-            lines.append("  - (missing)")
-        lines.append("- Stage machine support:")
-        lines.append("  - stage values found:")
-        if stages:
-            for stage in stages:
-                lines.append(f"    - {stage}")
-        else:
-            lines.append("    - (missing)")
-        lines.append(f"  - ready gate: {ready_gate}")
+            lines.append(f"- Category registry count: {category_count}")
+        lines.append(f"- Next-question planner present: {'yes' if planner_found else 'no'}")
     lines.append("")
 
     # E) Schemas
     lines.append("### E) Schemas")
-    schema_path = root / "packages" / "schemas" / "schema.json"
+    schema_path = root / "packages" / "schemas" / "requirement_object.schema.json"
     if schema_path.exists():
         try:
             version, properties, required = schema_info(schema_path)

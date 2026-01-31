@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://procuretrust.ai/schemas/requirement_object.v0.schema.json",
+  "title": "RequirementObject",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "type": "string",
+      "const": "v0"
+    },
+    "category_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "quantity": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "timeline": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "shipping": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "packaging": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "branding": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "compliance": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    },
+    "design_brief": {
+      "type": ["object", "null"],
+      "additionalProperties": true
+    }
+  },
+  "required": ["version"]
+}

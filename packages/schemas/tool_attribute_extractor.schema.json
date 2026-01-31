@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://procuretrust.ai/schemas/tool_attribute_extractor.schema.json",
+  "title": "ToolAttributeExtractor",
+  "type": "object",
+  "oneOf": [
+    {"$ref": "#/$defs/input"},
+    {"$ref": "#/$defs/output"}
+  ],
+  "$defs": {
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "type": "string"
+        },
+        "current_category_id": {
+          "type": ["string", "null"],
+          "minLength": 1
+        },
+        "requirement_object": {
+          "type": "object"
+        }
+      },
+      "required": ["text", "requirement_object"]
+    },
+    "output": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "patch": {
+          "type": "array",
+          "items": {"$ref": "#/$defs/patch_op"}
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": ["patch"]
+    },
+    "patch_op": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "op": {
+          "type": "string",
+          "enum": ["add", "replace", "remove"]
+        },
+        "path": {
+          "type": "string"
+        },
+        "value": {}
+      },
+      "required": ["op", "path"]
+    }
+  }
+}
