@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://procuretrust.ai/schemas/session_state.v0.schema.json",
+  "title": "SessionState",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "session_id": {
+      "type": "string"
+    },
+    "stage": {
+      "type": "string",
+      "enum": ["A", "B", "C", "D"]
+    },
+    "current_category_id": {
+      "type": ["string", "null"],
+      "minLength": 1
+    },
+    "requirement_object": {
+      "$ref": "requirement_object.schema.json"
+    },
+    "assets_index": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    }
+  },
+  "required": ["session_id", "stage", "requirement_object", "assets_index"]
+}
