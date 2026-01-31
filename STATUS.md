@@ -34,15 +34,20 @@
 ## SNAPSHOT (auto)
 
 ### A) Git
-- Branch: main
-- Last commit: 31700c3 Add comprehensive .gitignore file
+- Branch: feat/p2
+- Last commit: 48b802e chore: add project/status + snapshot tooling
 - Dirty files: yes
 
 ### B) Repo Tree (key paths)
-- apps/ (missing)
+- apps/
+  - api/
+    - services/
+    - tests/
+    - main.py
 - packages/ (missing)
 - infra/ (missing)
 - scripts/
+  - replay_session.py
   - snapshot.py
 
 ### C) API Surface (FastAPI)
@@ -109,7 +114,8 @@
 
 ### J) Known Issues (auto-collected TODO markers)
 - TODO/FIXME list (top 20):
-  - (missing)
+  - prompt.txt:259: TODO markers)
+  - prompt.txt:260: TODO/FIXME list (top 20):
 <!-- SNAPSHOT:END -->
 
 ---
